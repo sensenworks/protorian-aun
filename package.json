@@ -1,0 +1,32 @@
+{
+  "name": "protorian-aun",
+  "version": "0.0.1-beta.0",
+  "description": "user interface maker",
+  "main": "index.js",
+  "type": "module",
+  "types": "globals.d.ts",
+  "scripts": {
+    "debug": "tsc --watch",
+    "dev": "vite",
+    "build": "tsc",
+    "preview": "vite preview",
+    "build:types-export": "npm-dts generate -o ./globals.d.ts -c"
+  },
+  "keywords": [
+    "library",
+    "ui",
+    "frontend"
+  ],
+  "author": "Yannick GOBOU <sensen.framework@gmail.com> http://iancarter.work",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.7.13",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.2",
+    "vite": "3.2.3"
+  },
+  "engines": {
+    "npm": ">=8.18.0",
+    "node": ">=18.8.0"
+  }
+}
