@@ -232,8 +232,10 @@ export class AunElement {
      * element.append( document.querySelector('.box') )
      */
     append(...nodes) {
-        this.instance.append(...nodes);
-        this.emitter.dispatch('append', nodes);
+        if (nodes) {
+            nodes.forEach(node => this.instance.append(node));
+            this.emitter.dispatch('append', nodes);
+        }
         return this;
     }
     /**
@@ -942,6 +944,10 @@ export class AunWidget {
      * Les propriétés
      */
     get props() { return __classPrivateFieldGet(this, _AunWidget__props, "f"); }
+    append(...nodes) {
+        this.element.instance.append(...nodes);
+        return this;
+    }
     ready(callback) {
         this.emitter.listen('ready', widget => callback(widget));
         return this;

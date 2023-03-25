@@ -1,5 +1,6 @@
 import { AunConstruct, AunElement, AunAppearance, AunState, AunWidget, AunView, AunStackViews } from "./foundations";
-window.AUNRC = window.AUNRC || {};
+const aunWindow = { ...window };
+aunWindow.AUNRC = aunWindow.AUNRC || {};
 /**
  * CreateState
  * @description Instance fonctionnelle d'usage de gestion des états Protorian
@@ -169,7 +170,7 @@ export function Construct(component, children) { return (new AunConstruct()).mak
  * @example export const HelloWord = CreateComponent<PropType>('HelloWorld', ( props : IWProps ) => ... )
  */
 export function CreateComponent(name, widgetConstructor) {
-    if (!(window.AUNHW instanceof MutationObserver)) {
+    if (!(aunWindow.AUNHW instanceof MutationObserver)) {
         ActiveAutoHydrateComponents();
     }
     HydrateComponentQueue(name, widgetConstructor);
@@ -183,7 +184,9 @@ export function CreateComponent(name, widgetConstructor) {
  * @example HydrateComponentQueue<WidgetPropsType>( 'ComponentName', ( props : WidgetProps ) => ... )
  */
 export function HydrateComponentQueue(name, widgetConstructor) {
-    window.AUNRC[(name).toUpperCase()] = widgetConstructor;
+    if (aunWindow.AUNRC) {
+        aunWindow.AUNRC[(name).toUpperCase()] = widgetConstructor;
+    }
     HydrateComponent(name, widgetConstructor);
     return widgetConstructor;
 }
@@ -234,24 +237,24 @@ export function ExtractProps(attributes) {
  * @example ActiveAutoHydrateComponents()
  */
 export function ActiveAutoHydrateComponents() {
-    window.AUNHW = window.AUNHW || new MutationObserver(mutations => {
-        const storeKeys = Object.keys(window.AUNRC);
+    aunWindow.AUNHW = aunWindow.AUNHW || new MutationObserver(mutations => {
+        const storeKeys = Object.keys(aunWindow.AUNRC || {});
         mutations.forEach(mutation => {
             if (mutation.type == 'childList' &&
                 mutation.target instanceof HTMLElement) {
                 mutation.addedNodes.forEach(target => {
                     if (target instanceof HTMLElement && storeKeys.includes(target.tagName.toUpperCase())) {
-                        HydrateComponent(target.tagName, window.AUNRC[target.tagName]);
+                        HydrateComponent(target.tagName, (aunWindow.AUNRC || {})[target.tagName]);
                     }
                 });
             }
         });
     });
-    window.AUNHW.observe(document.body, {
+    aunWindow.AUNHW.observe(document.body, {
         subtree: true,
         childList: true,
     });
-    return window.AUNHW;
+    return aunWindow.AUNHW;
 }
 /**
  * Protorian

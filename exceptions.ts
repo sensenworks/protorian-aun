@@ -1,7 +1,6 @@
-export class WidgetErrorException
-	extends Error
-	implements IWidgerErrorException
-{
+import { IWidgerErrorException } from "./types";
+
+export class WidgetErrorException extends Error implements IWidgerErrorException {
 	message: string;
 
 	constructor(message: string) {

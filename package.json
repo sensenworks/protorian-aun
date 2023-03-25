@@ -1,10 +1,10 @@
 {
   "name": "protorian-aun",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
   "description": "user interface maker",
   "main": "index.js",
   "type": "module",
-  "types": "globals.d.ts",
+  "types": "types.d.ts",
   "scripts": {
     "debug": "tsc --watch",
     "dev": "vite",

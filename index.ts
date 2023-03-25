@@ -8,10 +8,12 @@ import {
   AunView,
   AunStackViews
 } from "./foundations";
+import { AUNWindow, IChildren, IComponentConstructor, IHydrateComponent, IKitProps, INode, IStackViewsList, IStackViewsOptions, IState, IViewOptions, IWidget, IWidgetAsyncCallback, IWProps, IWTarget } from "./types";
 
 
+const aunWindow : AUNWindow = { ...window }
 
-window.AUNRC = window.AUNRC || {}
+aunWindow.AUNRC = aunWindow.AUNRC || {}
   
 
 
@@ -160,7 +162,7 @@ export function CreateKit( definition : IKitProps ){
 
   return <P extends IWProps, E extends INode>( p : P ) => 
 
-    (definition.component<P, E>( p ) as IWidget<P,E>)
+    (definition.component( p ) as IWidget<P,E>)
     
       .layer( element => element.className( appearence.uid ) )
     
@@ -300,7 +302,7 @@ export function Construct<Component extends IWidget<IWProps, INode>>(
   
   component : Component, 
   
-  children : IChildren 
+  children : IChildren
   
 ){ return ( new AunConstruct() ).make( component, children ) }
 
@@ -321,7 +323,7 @@ export function CreateComponent<P extends IWProps>(
   
 ) : IHydrateComponent<P, HTMLElement> {
 
-  if( !( window.AUNHW instanceof MutationObserver ) ){
+  if( !( aunWindow.AUNHW instanceof MutationObserver ) ){
 
     ActiveAutoHydrateComponents()
 
@@ -350,7 +352,11 @@ export function HydrateComponentQueue<P extends IWProps>(
   
 ){
 
-  window.AUNRC[ (name).toUpperCase() ] = widgetConstructor
+  if( aunWindow.AUNRC ) {
+
+    aunWindow.AUNRC[ (name).toUpperCase() ] = widgetConstructor
+    
+  }
 
   HydrateComponent<P>( name, widgetConstructor )
 
@@ -433,9 +439,9 @@ export function ExtractProps<P extends IWProps>( attributes : NamedNodeMap ) : P
  */
 export function ActiveAutoHydrateComponents(){
 
-  window.AUNHW = window.AUNHW || new MutationObserver( mutations => {
+  aunWindow.AUNHW = aunWindow.AUNHW || new MutationObserver( mutations => {
 
-    const storeKeys = Object.keys( window.AUNRC )
+    const storeKeys = Object.keys( aunWindow.AUNRC || {} )
 
     mutations.forEach( mutation => {
       
@@ -451,7 +457,7 @@ export function ActiveAutoHydrateComponents(){
 
           if( target instanceof HTMLElement && storeKeys.includes( target.tagName.toUpperCase() ) ){
 
-            HydrateComponent( target.tagName, window.AUNRC[ target.tagName ] )
+            HydrateComponent( target.tagName, (aunWindow.AUNRC || {})[ target.tagName ] )
 
           }
           
@@ -463,7 +469,7 @@ export function ActiveAutoHydrateComponents(){
     
   })
 
-  window.AUNHW.observe( document.body, {
+  aunWindow.AUNHW.observe( document.body, {
     
     subtree: true,
 
@@ -471,7 +477,7 @@ export function ActiveAutoHydrateComponents(){
 
   })
 
-  return window.AUNHW;
+  return aunWindow.AUNHW;
   
 }
 

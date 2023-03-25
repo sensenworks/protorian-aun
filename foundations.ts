@@ -1,5 +1,64 @@
 
+import type { 
+  IAppearance, 
+  IAppearanceEmitterScheme, 
+  IAppearanceObject, 
+  IAppearanceObjectDestroyed, 
+  IAppearanceStyleSheet, 
+  IAppearanceValues, 
+  IAttribute, 
+  IAttributesEmitterScheme, 
+  IAttributesMap, 
+  IAttributesToggleMap, 
+  IChildren, 
+  IComponentConstructor, 
+  IConstruct, 
+  IConstructEmitterScheme, 
+  IElement, 
+  IElementClassName, 
+  IElementCSS, 
+  IElementCSSRemoves, 
+  IElementEmitterScheme, 
+  IElementEventCallback, 
+  IElementMeasureCallback, 
+  IElementOffsetCallback, 
+  IEmitter, 
+  IEmitterCallback, 
+  IEmitterEntries, 
+  IEmitterProgations, 
+  IEmitterScheme, 
+  IFindElementCallback, 
+  INavigation, 
+  INavigationEmitterScheme, 
+  INavigationMiddlewareCallback, 
+  INavigationMiddlewareProps, 
+  INavigationOptions, 
+  INode, 
+  IStackViews, 
+  IStackViewsEmitterScheme, 
+  IStackViewsList, 
+  IStackViewsOptions, 
+  IState, 
+  IStateCallback, 
+  IStateErrorCallback, 
+  IStateManager, 
+  IStateManagerEmitterScheme, 
+  IStateRecords, 
+  IView, 
+  IViewOptions, 
+  IWidget, 
+  IWidgetEmitterScheme, 
+  IWidgetLayerCallback, 
+  IWidgetReadyCallback, 
+  IWidgetRequestAnimationFrameCallback, 
+  IWidgetTimerCallback, 
+  IWProps, 
+  IWTarget, 
+  IWTargetNode
+} from "./types";
+
 import { MetricRandom } from "./metric";
+
 import { 
   AttributesObject, 
   AscendingDOMPath, 
@@ -116,7 +175,7 @@ export default class AunEmitter<Scheme extends IEmitterScheme> implements IEmitt
    * @example emitter.dispatch( 'emitterNameInKeyOfScheme', ... )
    * 
    */
-  dispatch( type : keyof Scheme, data: Scheme[ keyof Scheme ] ) : this{
+  dispatch( type : keyof Scheme, data: any ) : this{
 
     if( this.entries[ type ] ){
 
@@ -348,11 +407,16 @@ export class AunElement<E extends INode> implements IElement<E>{
    * element.append( 'string' )
    * element.append( document.querySelector('.box') )
    */
+
   append( ...nodes: (string | Node)[] ) { 
 
-    this.instance.append( ...nodes )
+    if( nodes ){
 
-    this.emitter.dispatch( 'append', nodes )
+      nodes.forEach( node => this.instance.append( node ) )
+      
+      this.emitter.dispatch( 'append', nodes )
+
+    }
 
     return this; 
 
@@ -1539,6 +1603,14 @@ export class AunWidget<P extends IWProps, E extends INode> implements IWidget<P,
 
     this.#excavation( this.props );
 
+  }
+
+  append( ...nodes : Array<string | Node> ) : this{
+
+    this.element.instance.append (...nodes )
+
+    return this;
+    
   }
 
   #excavation( props : P ){

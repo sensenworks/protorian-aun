@@ -13,6 +13,7 @@ import {
   View,
   CreateStackViews,
 } from "./index";
+import { IWProps } from "./types";
 
 ActiveAutoHydrateComponents()
 

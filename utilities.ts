@@ -1,5 +1,7 @@
 'use-struct';
 
+import { IAttributesMap, IAttributesMapValues, IObjectToString } from "./types";
+
 /**
  * URLParamsObject
  * @param searchParams Chaine de caractère des paramètres

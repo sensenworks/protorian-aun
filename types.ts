@@ -1,24 +1,24 @@
-declare interface Node{
+export interface AunNode{
 
   AUNAOD?: boolean;
   
 }
 
-declare interface Window{
+export type AUNWindow = Partial<Window> & {
 
   /**
    * Stockage des composant crée
    */
-  AUNRC : IRegistryComponentConstructorStack
+  AUNRC ?: IRegistryComponentConstructorStack
 
   /**
    * Stockage des Observateurs de mutation pour l'hydratation des composants
    */
-  AUNHW : MutationObserver
+  AUNHW ?: MutationObserver
 
 }
 
-declare type IChild = string 
+export type IChild = string 
   | number 
   | boolean 
   | IStateManager<IState> 
@@ -26,34 +26,34 @@ declare type IChild = string
   | HTMLElement 
   | undefined;
 
-declare type IChildren = IChild 
+export type IChildren = IChild 
   | Promise<IWidget<any, any>> 
   | Array<IChild 
   | Promise<IWidget<any, any>>> 
   | IChildren[];
 
-declare type INode = HTMLElement;
+export type INode = HTMLElement;
 
-declare type INodeLayer = HTMLDivElement;
+export type INodeLayer = HTMLDivElement;
 
-declare type INodeText = HTMLSpanElement;
-
-
-declare type IWTarget = string | INode | NodeListOf<INode> | IElement<INode>;
-
-declare type IWTargetNode = INode | NodeListOf<INode> | IElement<INode>;
+export type INodeText = HTMLSpanElement;
 
 
-declare type IFindElementCallback = ( element : HTMLElement ) => void
+export type IWTarget = string | INode | NodeListOf<INode> | IElement<INode>;
+
+export type IWTargetNode = INode | NodeListOf<INode> | IElement<INode>;
 
 
-declare interface IRegistryComponentConstructorStack {
+export type IFindElementCallback = ( element : HTMLElement ) => void
+
+
+export interface IRegistryComponentConstructorStack {
 
   [ K: string ] : ( props: any ) => IWidget<any, any> 
 
 }
 
-declare type IObjectToString = {
+export type IObjectToString = {
 
   eq ?: string | undefined;
 
@@ -69,7 +69,7 @@ declare type IObjectToString = {
  * IProps
  * @description définition des propriétés de base
  */
-declare interface IProps {
+export interface IProps {
 
   [ P : string ] : any;
 
@@ -80,7 +80,7 @@ declare interface IProps {
  * IWProps extends IProps
  * @description Les propriétés d'un widget. Les propriétés iront en attributs html avec le prefix "prop:{KEY}" pour garder la persistence. Les données de type objet seront convetir en JSON
  */
-declare interface IWProps extends IProps{
+export interface IWProps extends IProps{
 
   children ?: IChildren;
 
@@ -88,10 +88,10 @@ declare interface IWProps extends IProps{
 
 
 
-declare type IEmitterCallback<I> = ( payload : I ) => void | boolean;
+export type IEmitterCallback<I> = ( payload : I ) => void | boolean;
 
 
-declare type IEmitterEntry = {
+export type IEmitterEntry = {
 
   force ?: boolean;
 
@@ -99,21 +99,21 @@ declare type IEmitterEntry = {
   
 }
 
-declare type IEmitterEntries<Scheme extends IEmitterScheme> = {
+export type IEmitterEntries<Scheme extends IEmitterScheme> = {
 
   [ K in keyof Scheme ] : IEmitterEntry[]
   
 }
 
 
-declare type IEmitterProgations<Scheme extends IEmitterScheme> = {
+export type IEmitterProgations<Scheme extends IEmitterScheme> = {
 
   [ K in keyof Scheme ] : boolean
   
 }
 
 
-declare interface IEmitterScheme{
+export interface IEmitterScheme{
 
   [ K : string ] : any
   
@@ -121,7 +121,7 @@ declare interface IEmitterScheme{
 
 
 
-declare interface IPhysicalMethods{
+export interface IPhysicalMethods{
 
   asyncMeasure() : DOMRect;
 
@@ -196,7 +196,7 @@ declare interface IPhysicalMethods{
 }
 
 
-declare interface IEmitter<Scheme extends IEmitterScheme>{
+export interface IEmitter<Scheme extends IEmitterScheme>{
 
   propagations : IEmitterProgations<Scheme>;
 
@@ -210,30 +210,30 @@ declare interface IEmitter<Scheme extends IEmitterScheme>{
 
 
 
-declare type IElementCSS = Partial<CSSStyleDeclaration>;
+export type IElementCSS = Partial<CSSStyleDeclaration>;
 
-declare type IElementCSSRemoves = keyof IElementCSS | Array<keyof IElementCSS>; 
+export type IElementCSSRemoves = keyof IElementCSS | Array<keyof IElementCSS>; 
 
-declare type IElementListenerCallback = () => void
+export type IElementListenerCallback = () => void
 
-declare type IElementEventCallback<T extends keyof HTMLElementEventMap> = ( args : HTMLElementEventMap[T] ) => void
+export type IElementEventCallback<T extends keyof HTMLElementEventMap> = ( args : HTMLElementEventMap[T] ) => void
 
-declare type IElementClassName = string[] | string;
+export type IElementClassName = string[] | string;
 
-// declare interface IElementClassName{
+// export interface IElementClassName{
 
 //   [ C : string ] : string | IElementClassName | undefined;
   
 // }
 
-// declare interface IAttribute{
+// export interface IAttribute{
 
 //   [ A : string ] : string | IAttribute | undefined
   
 // }
 
 
-// declare interface IAttributesProps extends IAttributesMap{
+// export interface IAttributesProps extends IAttributesMap{
 
 //   [ A : string ] : IAttributesProps | string  | number | boolean | null
   
@@ -241,7 +241,7 @@ declare type IElementClassName = string[] | string;
 
 
 
-declare interface IElementEmitterScheme {
+export interface IElementEmitterScheme {
 
   own : IWidget<any, any>;
 
@@ -273,7 +273,7 @@ declare interface IElementEmitterScheme {
 
   toggle : IElementClassName
 
-  append : (string | Node)[]
+  append : Array<string | Node>
 
   className : IElementClassName;
 
@@ -289,11 +289,11 @@ declare interface IElementEmitterScheme {
   
 }
 
-declare type IElementMeasureCallback = ( offset : DOMRect ) => void
+export type IElementMeasureCallback = ( offset : DOMRect ) => void
 
-declare type IElementOffsetCallback = ( offset : IElementOffset ) => void
+export type IElementOffsetCallback = ( offset : IElementOffset ) => void
 
-declare type IElementOffset = {
+export type IElementOffset = {
 
   height : number
 
@@ -307,7 +307,7 @@ declare type IElementOffset = {
   
 }
 
-declare interface IElement<E extends INode> extends IPhysicalMethods {
+export interface IElement<E extends INode> extends IPhysicalMethods {
 
   instance : E;
 
@@ -316,6 +316,8 @@ declare interface IElement<E extends INode> extends IPhysicalMethods {
   get widget() : IWidget<any, E> | undefined;
 
   own<P extends IWProps>( widget : IWidget<P, E> | undefined ) : this;
+
+  // append( ...nodes: (string | Node)[] ) : this;
   
 }
 
@@ -323,7 +325,7 @@ declare interface IElement<E extends INode> extends IPhysicalMethods {
 
 
 
-declare type IWidgetTimerCallback = <
+export type IWidgetTimerCallback = <
 
   P extends IWProps, 
 
@@ -331,7 +333,7 @@ declare type IWidgetTimerCallback = <
 
   >( widget : IWidget<P, E>, timer : NodeJS.Timeout ) => void
 
-declare type IWidgetRequestAnimationFrameCallback = <
+export type IWidgetRequestAnimationFrameCallback = <
 
   P extends IWProps, 
 
@@ -340,7 +342,7 @@ declare type IWidgetRequestAnimationFrameCallback = <
   >( widget : IWidget<P, E> ) => void
 
 
-declare type IWidgetAsyncCallback = ( 
+export type IWidgetAsyncCallback = ( 
 
   resolve: (value: IWidget<any, any> | PromiseLike<IWidget<any, any>>) => void, 
   
@@ -349,12 +351,12 @@ declare type IWidgetAsyncCallback = (
 ) => void
 
 
-declare type IWidgetLayerCallback<E extends INode> = ( element : IElement<E> ) => void
+export type IWidgetLayerCallback<E extends INode> = ( element : IElement<E> ) => void
 
-declare type IWidgetReadyCallback<P extends IWProps,E extends INode> = ( widget : IWidget<P, E> ) => void
+export type IWidgetReadyCallback<P extends IWProps,E extends INode> = ( widget : IWidget<P, E> ) => void
 
 
-declare interface IWidgetEmitterScheme<P extends IWProps, E extends INode> {
+export interface IWidgetEmitterScheme<P extends IWProps, E extends INode> {
 
   ready : IWidget<P, E>;
 
@@ -382,7 +384,7 @@ declare interface IWidgetEmitterScheme<P extends IWProps, E extends INode> {
 
 }
 
-declare interface IWidget<P extends IWProps, E extends INode>{
+export interface IWidget<P extends IWProps, E extends INode>{
 
   element : IElement<E>;
 
@@ -427,16 +429,16 @@ declare interface IWidget<P extends IWProps, E extends INode>{
  * IState
  * @description
  */
-declare interface IStateObject{
+export interface IStateObject{
   
   [ K: string ] : IState
 
 }
 
-declare type IState = IStateObject | boolean | string | number | null | undefined
+export type IState = IStateObject | boolean | string | number | null | undefined
 
 
-declare type IStateRecords<S extends IState> = {
+export type IStateRecords<S extends IState> = {
 
   anchor: Text | undefined;
 
@@ -447,10 +449,10 @@ declare type IStateRecords<S extends IState> = {
 }
 
 
-declare type IStateCallback<S extends IState> = ( state : S ) => IWidget<any, any>;
+export type IStateCallback<S extends IState> = ( state : S ) => IWidget<any, any>;
 
 
-declare type IStateErrorCallbackAunyload<M> = {
+export type IStateErrorCallbackAunyload<M> = {
 
   manager : M;
 
@@ -458,7 +460,7 @@ declare type IStateErrorCallbackAunyload<M> = {
   
 }
 
-declare type IStateErrorCallback<S extends IState> = ( 
+export type IStateErrorCallback<S extends IState> = ( 
   
   payload : IStateErrorCallbackAunyload<IStateManager<S>> 
   
@@ -466,7 +468,7 @@ declare type IStateErrorCallback<S extends IState> = (
 
 
 
-declare interface IStateManagerEmitterScheme<S extends IState> {
+export interface IStateManagerEmitterScheme<S extends IState> {
 
   success : IStateManager<S>;
 
@@ -479,7 +481,7 @@ declare interface IStateManagerEmitterScheme<S extends IState> {
 }
 
 
-declare interface IStateManager<S extends IState>{
+export interface IStateManager<S extends IState>{
 
   emitter : IEmitter<IStateManagerEmitterScheme<S>>
 
@@ -503,7 +505,7 @@ declare interface IStateManager<S extends IState>{
 
 
 
-declare interface IWidgerErrorException{
+export interface IWidgerErrorException{
 
   messageToString( data : string ) : string;
 
@@ -514,7 +516,7 @@ declare interface IWidgerErrorException{
 
 
 
-declare interface IConstructEmitterScheme<P extends IWProps, E extends INode> {
+export interface IConstructEmitterScheme<P extends IWProps, E extends INode> {
 
   before : IWidget<P, E>;
 
@@ -524,7 +526,7 @@ declare interface IConstructEmitterScheme<P extends IWProps, E extends INode> {
 
 }
 
-declare interface IConstruct<P extends IWProps, E extends INode>{
+export interface IConstruct<P extends IWProps, E extends INode>{
 
   emitter : IEmitter<IConstructEmitterScheme<P, E>>;
 
@@ -543,7 +545,7 @@ declare interface IConstruct<P extends IWProps, E extends INode>{
 
 
 
-declare interface IAppearanceEmitterScheme {
+export interface IAppearanceEmitterScheme {
 
   ready: IAppearance;
 
@@ -563,9 +565,9 @@ declare interface IAppearanceEmitterScheme {
   
 }
 
-declare type IAppearanceValues = string | number | undefined
+export type IAppearanceValues = string | number | undefined
 
-declare interface IAppearanceCSSDeclaration extends Partial<CSSStyleDeclaration>{
+export interface IAppearanceCSSDeclaration extends Partial<CSSStyleDeclaration>{
 
   paddingVertical ?: IAppearanceValues;
   
@@ -577,21 +579,21 @@ declare interface IAppearanceCSSDeclaration extends Partial<CSSStyleDeclaration>
   
 }
 
-declare type IAppearanceObject = {
+export type IAppearanceObject = {
 
   [ K in keyof Partial<IAppearanceCSSDeclaration> ] : IAppearanceValues;
 
 }
 
-declare interface IAppearanceStyleSheet{
+export interface IAppearanceStyleSheet{
 
   [ Selector : string ] : IAppearanceObject;
 
 }
 
-declare type IAppearanceObjectDestroyed =  Array<keyof IAppearanceObject>
+export type IAppearanceObjectDestroyed =  Array<keyof IAppearanceObject>
 
-declare interface IAppearance{
+export interface IAppearance{
 
   instance: HTMLStyleElement;
 
@@ -636,7 +638,7 @@ declare interface IAppearance{
 
 
 
-declare type IHydrateComponent<
+export type IHydrateComponent<
   
   P extends IWProps, 
   
@@ -644,57 +646,51 @@ declare type IHydrateComponent<
   
 > = ( ( props: P ) => IWidget<P, E> )
 
-declare type IComponentConstructor = ( <
-  
-  P extends IWProps, 
-
-  E extends HTMLElement
-
->( props: any ) => IWidget<any, any> )
+export type IComponentConstructor = ( ( props: any ) => IWidget<any, any> )
 
 
 
 
 
-declare type IAttributesMapValues = IAttributesMap | Array<any> | string  | number | boolean | null | (() => void)
+export type IAttributesMapValues = IAttributesMap | Array<any> | string  | number | boolean | null | (() => void)
 
-declare type IAttributesMap = {
+export type IAttributesMap = {
 
   [ A : string ] : IAttributesMapValues
   
 }
 
-declare type IAttributesAunrsed = {
+export type IAttributesAunrsed = {
 
     [ A : string ] : string;
     
 }
 
-declare type IAttributesToggleMap = {
+export type IAttributesToggleMap = {
 
     [ A : string ] : boolean;
     
 }
 
-declare type IAttributeSyncAunyload = {
+export type IAttributeSyncAunyload = {
   
   entries: string[];
 
 }
 
-declare type IAttributeAddAunyload = {
+export type IAttributeAddAunyload = {
   
   added: string;
 
 }
 
-declare type IAttributeRemoveAunyload = {
+export type IAttributeRemoveAunyload = {
   
   removed: string;
 
 }
 
-declare type IAttributeReplaceAunyload = {
+export type IAttributeReplaceAunyload = {
   
   older: string;
 
@@ -702,13 +698,13 @@ declare type IAttributeReplaceAunyload = {
 
 }
 
-declare type IAttributeUnlinkAunyload = {
+export type IAttributeUnlinkAunyload = {
   
   value: string[] | string;
 
 }
 
-declare type IAttributesEmitterScheme = {
+export type IAttributesEmitterScheme = {
 
   sync: IAttributeSyncAunyload;
 
@@ -726,7 +722,7 @@ declare type IAttributesEmitterScheme = {
 
 }
 
-declare interface IAttribute{
+export interface IAttribute{
 
   attributeName : string;
   
@@ -753,11 +749,11 @@ declare interface IAttribute{
 
 
 
-// declare interface IKitEmitterScheme{
+// export interface IKitEmitterScheme{
 
 // }
 
-declare interface IKitProps{
+export interface IKitProps{
 
   appearance: IAppearanceStyleSheet;
 
@@ -765,7 +761,7 @@ declare interface IKitProps{
 
 }
 
-// declare interface IKit<P extends IWProps, E extends INode>{
+// export interface IKit<P extends IWProps, E extends INode>{
 
 //   emitter : IEmitter<IKitEmitterScheme>;
   
@@ -779,7 +775,7 @@ declare interface IKitProps{
 
 
 
-declare type IViewEmitterCallbackArgument<C extends IWProps> = {
+export type IViewEmitterCallbackArgument<C extends IWProps> = {
 
   component: IWidget<C, HTMLDivElement>;
 
@@ -787,14 +783,14 @@ declare type IViewEmitterCallbackArgument<C extends IWProps> = {
   
 }
 
-declare type IViewEmitterCallback<C extends IWProps> = (
+export type IViewEmitterCallback<C extends IWProps> = (
 
   payload : IViewEmitterCallbackArgument<C>
   
 ) => void
 
 
-declare interface IViewEmitters<C extends IWProps> {
+export interface IViewEmitters<C extends IWProps> {
 
   show?: IViewEmitterCallback<C>;
 
@@ -803,7 +799,7 @@ declare interface IViewEmitters<C extends IWProps> {
 }
 
 
-declare interface IViewOptions<C extends IWProps>{
+export interface IViewOptions<C extends IWProps>{
 
   name: string;
   
@@ -816,7 +812,7 @@ declare interface IViewOptions<C extends IWProps>{
 }
 
 
-declare interface IView<ComponentProps extends IWProps>{
+export interface IView<ComponentProps extends IWProps>{
   
   get parameters() : ComponentProps;
   
@@ -839,7 +835,7 @@ declare interface IView<ComponentProps extends IWProps>{
 
 
 
-declare type IStackViewsOptions<Scheme> = Omit<Partial<INavigationOptions<Scheme>>, 'middlewares'> & {
+export type IStackViewsOptions<Scheme> = Omit<Partial<INavigationOptions<Scheme>>, 'middlewares'> & {
 
   index ?: keyof Scheme;
 
@@ -849,19 +845,19 @@ declare type IStackViewsOptions<Scheme> = Omit<Partial<INavigationOptions<Scheme
 
 }
 
-declare type IStackViewsList<Scheme> = {
+export type IStackViewsList<Scheme> = {
 
   [ K in keyof Scheme ] : IView<any>
   
 }
 
-declare interface IStackViewsEmitterScheme<Scheme>{
+export interface IStackViewsEmitterScheme<Scheme>{
 
   error: keyof Scheme;
   
 }
 
-declare interface IStackViews<Scheme>{
+export interface IStackViews<Scheme>{
 
   get views(): IStackViewsList<Scheme>;
 
@@ -881,9 +877,9 @@ declare interface IStackViews<Scheme>{
 
 
 
-declare type INavigationNavigateParser = 'hashtag' | 'directory'
+export type INavigationNavigateParser = 'hashtag' | 'directory'
 
-declare type INavigationNavigateProps<Scheme> = {
+export type INavigationNavigateProps<Scheme> = {
 
   navigation: INavigation<Scheme>;
 
@@ -893,7 +889,7 @@ declare type INavigationNavigateProps<Scheme> = {
 
 }
 
-declare type INavigationMiddlewareProps<Scheme> = {
+export type INavigationMiddlewareProps<Scheme> = {
 
   navigation: INavigation<Scheme>;
 
@@ -907,14 +903,14 @@ declare type INavigationMiddlewareProps<Scheme> = {
   
 }
 
-declare type INavigationMiddlewareCallback<Scheme> = ( 
+export type INavigationMiddlewareCallback<Scheme> = ( 
   
   payload : INavigationMiddlewareProps<Scheme> 
   
 ) => void;
 
 
-declare type INavigationOptions<Scheme> = {
+export type INavigationOptions<Scheme> = {
 
   useHashtagParser?: boolean;
 
@@ -925,7 +921,7 @@ declare type INavigationOptions<Scheme> = {
 }
 
 
-declare interface INavigationEmitterScheme<Scheme>{
+export interface INavigationEmitterScheme<Scheme>{
 
   options: INavigation<Scheme>;
 
@@ -934,7 +930,7 @@ declare interface INavigationEmitterScheme<Scheme>{
 } 
 
 
-declare interface INavigation<Scheme>{
+export interface INavigation<Scheme>{
 
   emitter: IEmitter<INavigationEmitterScheme<Scheme>>
 
