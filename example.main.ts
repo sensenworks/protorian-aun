@@ -1,5 +1,9 @@
 
 import { 
+  AUNTransitions
+} from "./foundations";
+
+import { 
   ActiveAutoHydrateComponents, 
   AsyncComponent, 
   CreateComponent, 
@@ -13,7 +17,7 @@ import {
   View,
   CreateStackViews,
 } from "./index";
-import { IWProps } from "./types";
+import type { IWProps } from "./types";
 
 ActiveAutoHydrateComponents()
 
@@ -242,7 +246,7 @@ const HomeFrameComponent = () => Widget({
 
         fontSize: '3vmin'
         
-      })
+      }).attributeNS( { navigate:{ view : 'about' } }, undefined )
       
     ),
     
@@ -254,7 +258,7 @@ const HomeFrameComponent = () => Widget({
     
   ]
   
-});
+}).layer( e => e.style({ backgroundColor: 'white'}));
 
 const AboutFrameComponent = () => Widget({
 
@@ -268,21 +272,21 @@ const AboutFrameComponent = () => Widget({
 
       element.style({
 
-        fontSize: '3vmin'
+        fontSize: '5vmin'
         
       })
       
     ),
     
-    TextWidget({
+    // TextWidget({
 
-      children: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sed ipsum explicabo modi, voluptates possimus ducimus excepturi optio consequuntur reiciendis quod quisquam ex, error autem suscipit, enim nisi aliquid sunt impedit?'
+    //   children: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sed ipsum explicabo modi, voluptates possimus ducimus excepturi optio consequuntur reiciendis quod quisquam ex, error autem suscipit, enim nisi aliquid sunt impedit?'
       
-    }),
+    // }),
     
   ]
   
-})
+}).layer( e => e.style({ backgroundColor: 'white'}))
 
 
 
@@ -300,7 +304,13 @@ const HomeFrame = View( HomeFrameComponent, {
 
   name: 'home',
 
-  presenter: 'modal',
+  transitions: {
+    
+    entry: AUNTransitions.horizontalSlide,
+
+    exit: AUNTransitions.fade,
+    
+  },
 
   emitters:{
 
@@ -318,6 +328,14 @@ const AboutFrame = View( AboutFrameComponent, {
   name: 'about',
 
   presenter: 'modal',
+
+  transitions: {
+
+    entry: AUNTransitions.horizontalSlide,
+
+    exit: AUNTransitions.fade,
+    
+  },
 
   emitters:{
 
@@ -340,9 +358,21 @@ const AppStackView = CreateStackViews<IAppStackViewsScheme>({
 
   canvas: '#stackframes',
 
-  useHashtagParser: false
+  useHashtagParser: false,
+
+  middlewares:[
+
+    // ( payload ) => {
+
+    //   // console.log('My Middleware from option', payload )
+      
+    // }
+    
+  ]
   
 });
+
+// AppStackView.middleware( payload => console.log('Middle from middleware\'s method', payload ) )
 
 AppStackView.run()
 

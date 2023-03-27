@@ -181,6 +181,11 @@ export interface IPhysicalMethods{
     separator?: string | undefined 
   ) : this;
 
+  attributeNS( 
+    tokens ?: IAttributesMap | undefined, 
+    ns?: string | undefined
+  ) : this;
+
   removeAttribute( 
     tokens : IAttributesMap,
     ns?: string | undefined, 
@@ -805,9 +810,19 @@ export interface IViewOptions<C extends IWProps>{
   
   title: string;
 
-  presenter: 'normal' | 'modal' | 'overlay' | 'overlaySideLeft' | 'overlaySideRight';
+  presenter ?: 'normal' | 'modal' | 'overlay' | 'overlaySideLeft' | 'overlaySideRight';
 
-  emitters: IViewEmitters<C>
+  emitters ?: IViewEmitters<C>;
+
+  transitions ?: {
+
+    entry: ITransition;
+
+    exit: ITransition;
+    
+  };
+
+  // switcher ?: IViewSwitcher;
 
 }
 
@@ -843,6 +858,8 @@ export type IStackViewsOptions<Scheme> = Omit<Partial<INavigationOptions<Scheme>
   
   errorView ?: keyof Scheme;
 
+  middlewares ?: INavigationMiddlewareCallback<Scheme>[];
+
 }
 
 export type IStackViewsList<Scheme> = {
@@ -867,7 +884,11 @@ export interface IStackViews<Scheme>{
   
   navigation: INavigation<Scheme>;
 
-  middleware( payload : INavigationMiddlewareProps<Scheme> ) : this;
+  currentView() : IStackViewsList<Scheme>[keyof Scheme] | undefined;
+
+  middleware( callback : INavigationMiddlewareCallback<Scheme> ) : this;
+
+  // #defaultMiddleware( payload : INavigationMiddlewareProps<Scheme> ) : this;
   
   run(): this;
   
@@ -934,7 +955,11 @@ export interface INavigation<Scheme>{
 
   emitter: IEmitter<INavigationEmitterScheme<Scheme>>
 
+  options: INavigationOptions<Scheme>;
+
   setOptions( options: INavigationOptions<Scheme> ) : this;
+
+  setOption( optionName: keyof INavigationOptions<Scheme>, value : (INavigationMiddlewareCallback<Scheme>[] & boolean) | undefined ) : this;
 
   middleware( middleware : INavigationMiddlewareCallback<Scheme> ) : this;
 
@@ -946,7 +971,9 @@ export interface INavigation<Scheme>{
 
   parseElementCaptured( event : Event ) : HTMLElement | undefined;
 
-  currentRoute() : keyof Scheme;
+  currentRouteName() : keyof Scheme;
+
+  oldRouteName() : keyof Scheme | undefined;
 
   currentQuery<T>() : T | undefined;
 
@@ -962,4 +989,218 @@ export interface INavigation<Scheme>{
     
   ) : this;
   
+}
+
+
+
+
+
+
+// export type IViewSwitcherProps = {
+
+//   entry ?: IAnimates;
+
+//   exit ?: IAnimates;
+  
+// }
+
+// export interface IViewSwitcher{
+
+//   props : IViewSwitcherProps;
+
+// }
+
+
+
+
+// export type ITransitionEmitterScheme = {
+
+//   done: IAnimate;
+  
+// }
+
+export type ITransitionDoneCallback = ( transition : ITransition ) => void;
+
+export type ITransitionType = 'entry' | 'exit';
+
+export type ITransitionProps = {
+
+  whenEntry: (target: IAnimateTarget) => IAnimate;
+
+  whenExit: (target: IAnimateTarget) => IAnimate;
+  
+}
+
+export interface ITransition{
+
+  in( target : IAnimateTarget, done: ITransitionDoneCallback ) : IAnimate;
+
+  out( target : IAnimateTarget, done: ITransitionDoneCallback ) : IAnimate;
+  
+}
+
+
+
+
+
+
+export type IAnimateInterpolarities = number[][]
+
+export type IAnimateInterpolarity = number[]
+
+export type IAnimateHitCallbackProps = {
+  
+  interpolarity: number[];
+  
+  animate: IAnimate; 
+  
+  percent: number 
+
+}
+
+export type IAnimateHitCallback = ( props : IAnimateHitCallbackProps ) => void
+
+export type IAnimateEmitterScheme = {
+
+  ready: IAnimateInterpolarities;
+
+  start: IAnimateInterpolarities;
+
+  done: IAnimateInterpolarities;
+
+  stop: IAnimate;
+
+  loop: IAnimate;
+
+  hit: IAnimateHitPayload;
+  
+}
+
+export type IAnimateHit = {
+
+  interpolate : number[];
+  
+  engine : IAnimate;
+  
+  percent : number;
+  
+}
+
+export type IAnimateOptions = {
+
+  from: number[],
+  
+  to: number[],
+  
+  duration: number,
+  
+  frame?: number,
+
+  loop?: boolean | number
+  
+  start?: ( engine: IAnimate ) => void
+  
+  hit?: IAnimateHitCallback
+  
+  done?: (engine: IAnimate) => void
+  
+}
+
+
+export type IAnimateElementProperties = Array<keyof CSSStyleDeclaration>;
+
+export type IAnimateElementPattern = (( value: number) => string) | null
+
+export type IAnimateElementOptions = {
+
+  target: IAnimateTarget;
+  
+  from ?: number[];
+  
+  to ?: number[];
+  
+  duration ?: number;
+
+  properties ?: IAnimateElementProperties;
+
+  patterns ?: IAnimateElementPattern[];
+  
+}
+
+
+export type IAnimateProps = {
+
+  animates: IAnimate[]
+  
+  // target:{
+
+  //   entry: IElement<HTMLElement>;
+
+  //   exit: IElement<HTMLElement>;
+    
+  // }
+  
+}
+
+export type IAnimateTarget = IElement<HTMLElement>;
+
+export type IAnimateConstructor = ( target : IAnimateTarget, callback : IAnimateCallback ) => IAnimate
+
+export type IAnimatePayload = {
+
+  animate : IAnimate;
+   
+  target : IElement<HTMLElement>
+  
+}
+
+export type IAnimateHitPayload = {
+
+  interpolate: IAnimateInterpolarity;
+
+  engine: IAnimate;
+
+  percent: number;
+  
+}
+
+export type IAnimateCallback = ( payload :IAnimatePayload  ) => IAnimate;
+
+
+export interface IAnimate{
+
+  options: IAnimateOptions;
+
+  defaultFrame: number;
+
+  interpolarities : IAnimateInterpolarities;
+
+  state : number;
+
+  loopState : number;
+
+  status : boolean;
+
+  emitter : IEmitter<IAnimateEmitterScheme>;
+
+
+  clean(): this;
+
+  reset(options: IAnimateOptions): this;
+
+  create(options: IAnimateOptions): this;
+
+  element(options:IAnimateElementOptions) : this;
+
+  stop(): this;
+
+  restart(): this;
+
+  play(): this;
+  
+}
+
+
+export interface IAnimates{
+
 }

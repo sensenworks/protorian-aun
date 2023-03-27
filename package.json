@@ -1,16 +1,17 @@
 {
   "name": "protorian-aun",
-  "version": "0.0.1-beta.1",
+  "version": "0.0.1-beta.6",
   "description": "user interface maker",
   "main": "index.js",
   "type": "module",
-  "types": "types.d.ts",
+  "types": "globals.d.ts",
   "scripts": {
     "debug": "tsc --watch",
-    "dev": "vite",
     "build": "tsc",
-    "preview": "vite preview",
-    "build:types-export": "npm-dts generate -o ./globals.d.ts -c"
+    "dev": "vite",
+    "vite-preview": "vite preview",
+    "vite-build": "tsc && vite build",
+    "types-build": "npm-dts generate -o ./globals.d.ts -c"
   },
   "keywords": [
     "library",

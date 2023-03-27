@@ -9,7 +9,7 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var _AunElement_widget, _AunAttribute_entries, _AunAttribute_element, _AunState_instances, _AunState_mirror, _AunState_recorded, _AunState_current, _AunState_emitters, _AunWidget_instances, _AunWidget__props, _AunWidget_excavation, _AunView__parameters, _AunView__component, _AunStackViews_views;
+var _AunElement_widget, _AunAttribute_entries, _AunAttribute_element, _AunState_instances, _AunState_mirror, _AunState_recorded, _AunState_current, _AunState_emitters, _AunWidget_instances, _AunWidget__props, _AunWidget_excavation, _AunView__parameters, _AunView__component, _AunStackViews_instances, _AunStackViews_views, _AunStackViews_initializeCanvas, _AunStackViews_defaultMiddleware, _AunNavigation_oldRoute, _AUNTransition_props, _AUNAnimate_instances, _AUNAnimate_target, _AUNAnimate_callback, _AUNAnimate_originOptions, _AUNAnimate_initCallback;
 import { MetricRandom } from "./metric";
 import { AttributesObject, AscendingDOMPath, ObjectToString, UnCamelize, UpdateObject, URLParamsObject } from "./utilities";
 /**
@@ -371,6 +371,22 @@ export class AunElement {
     attribute(attributes, ns, separator) {
         if (attributes) {
             Object.entries(AttributesObject(attributes, ns, separator))
+                .forEach(({ 0: name, 1: attribute }) => {
+                this.instance.setAttribute(name, `${attribute}`);
+            });
+        }
+        return this;
+    }
+    /**
+     * attribute
+     * @description Definit le/les attribut(s)
+     * @param attributes Attributs sous form d'object
+     * @param ns Nom de l'espace
+     * @param separator Séparateur de nom d'espace
+     */
+    attributeNS(attributes, ns) {
+        if (attributes) {
+            Object.entries(AttributesObject(attributes, ns, ':'))
                 .forEach(({ 0: name, 1: attribute }) => {
                 this.instance.setAttribute(name, `${attribute}`);
             });
@@ -1196,7 +1212,9 @@ export class AunView {
 _AunView__parameters = new WeakMap(), _AunView__component = new WeakMap();
 export class AunStackViews {
     constructor(views, options) {
+        _AunStackViews_instances.add(this);
         _AunStackViews_views.set(this, {});
+        this.oldComponent = undefined;
         /**
          * Options
          */
@@ -1210,7 +1228,8 @@ export class AunStackViews {
         this.options = options || {};
         this.navigation.setOptions({
             middlewares: [
-                this.middleware.bind(this),
+                __classPrivateFieldGet(this, _AunStackViews_instances, "m", _AunStackViews_defaultMiddleware).bind(this),
+                ...(this.options.middlewares || []),
             ],
             useHashtagParser: (typeof this.options.useHashtagParser != 'undefined')
                 ? this.options.useHashtagParser
@@ -1219,25 +1238,22 @@ export class AunStackViews {
                 ? this.options.capture
                 : true,
         });
+        __classPrivateFieldGet(this, _AunStackViews_instances, "m", _AunStackViews_initializeCanvas).call(this);
     }
     /**
      * Les vues
      */
     get views() { return __classPrivateFieldGet(this, _AunStackViews_views, "f"); }
-    middleware({ args, routeName }) {
-        const view = __classPrivateFieldGet(this, _AunStackViews_views, "f")[routeName] || undefined;
-        if (view && this.options.canvas) {
-            fe(this.options.canvas, canvas => {
-                canvas.innerText = '';
-                const component = view.componentConstructor(args);
-                canvas.append(component.element.instance);
-                console.log('Middleware called', routeName, component, canvas);
-            });
-        }
-        else {
-            this.emitter.dispatch('error', routeName);
-        }
+    middleware(callback) {
+        this.navigation.options.middlewares?.push(callback);
         return this;
+    }
+    currentView() {
+        return __classPrivateFieldGet(this, _AunStackViews_views, "f")[this.navigation.currentRouteName()];
+    }
+    oldView() {
+        const name = this.navigation.oldRouteName();
+        return name ? __classPrivateFieldGet(this, _AunStackViews_views, "f")[name] || undefined : undefined;
     }
     /**
      * Démarrage
@@ -1245,12 +1261,63 @@ export class AunStackViews {
     run() {
         this.navigation.observe();
         if (this.options.index) {
-            this.navigation.navigate(this.navigation.currentRoute() || this.options.index, this.navigation.currentQuery() || undefined, undefined);
+            this.navigation.navigate(this.navigation.currentRouteName() || this.options.index, this.navigation.currentQuery() || undefined, undefined);
         }
         return this;
     }
 }
-_AunStackViews_views = new WeakMap();
+_AunStackViews_views = new WeakMap(), _AunStackViews_instances = new WeakSet(), _AunStackViews_initializeCanvas = function _AunStackViews_initializeCanvas() {
+    fe(this.options.canvas, canvas => {
+        canvas.style.position = 'relative';
+    });
+    return this;
+}, _AunStackViews_defaultMiddleware = function _AunStackViews_defaultMiddleware({ args, routeName }) {
+    const view = __classPrivateFieldGet(this, _AunStackViews_views, "f")[routeName] || undefined;
+    if (view && this.options.canvas) {
+        fe(this.options.canvas, canvas => {
+            const component = view.componentConstructor(args);
+            const transitionAvailable = view?.options.transitions && component.element.instance;
+            const oldView = this.oldView();
+            // const oldTransitionAvailable = oldView?.options.transitions && this.oldComponent?.element.instance;
+            component.element.style({
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                zIndex: '2'
+            });
+            if (this.oldComponent) {
+                component.element.style({
+                    position: 'absolute',
+                    top: '0',
+                    left: '0',
+                    zIndex: '1'
+                });
+            }
+            // const route = this.currentView();
+            // console.log('Old routre', routeName, oldView )
+            if (transitionAvailable) {
+                component.element.on('transitionend', () => {
+                    this.oldComponent?.element.remove();
+                    this.oldComponent = component;
+                });
+                view.options.transitions?.entry.in(component.element, () => { });
+                if (this.oldComponent) {
+                    oldView?.options.transitions?.entry.out(this.oldComponent.element, () => { });
+                }
+                canvas.append(component.element.instance);
+            }
+            if (!transitionAvailable) {
+                canvas.innerText = '';
+                canvas.append(component.element.instance);
+                this.oldComponent = component;
+            }
+        });
+    }
+    else {
+        this.emitter.dispatch('error', routeName);
+    }
+    return this;
+};
 /**
  * Système de navigation
  */
@@ -1258,13 +1325,21 @@ export class AunNavigation {
     constructor() {
         this.options = {};
         this.emitter = new AunEmitter();
+        _AunNavigation_oldRoute.set(this, void 0);
         this.options.middlewares = this.options.middlewares || [];
     }
-    currentRoute() {
+    currentRouteName() {
         return (this.options.useHashtagParser ? location.hash : location.pathname).substring(1);
+    }
+    oldRouteName() {
+        return __classPrivateFieldGet(this, _AunNavigation_oldRoute, "f");
     }
     currentQuery() {
         return URLParamsObject(location.search);
+    }
+    setOption(optionName, value) {
+        this.options[optionName] = value;
+        return this;
     }
     setOptions(options) {
         this.options = UpdateObject(this.options, options);
@@ -1285,7 +1360,7 @@ export class AunNavigation {
             document.body.addEventListener('click', (ev) => {
                 const target = this.parseElementCaptured(ev);
                 if (target && !target.hasAttribute('navigate:no-detection')) {
-                    const url = target.getAttribute('href') || target.getAttribute('navigate:view');
+                    const url = target.getAttribute('href') || target.getAttribute('navigate:view') || target.getAttribute('navigate-view');
                     const blank = (target.getAttribute('target') || '').toLowerCase() == '_blank';
                     const external = url ? this.isExternalURL(url) : false;
                     if (url && !blank && !external) {
@@ -1307,17 +1382,22 @@ export class AunNavigation {
     }
     parseElementCaptured(ev) {
         if (ev.target instanceof HTMLElement) {
-            return AscendingDOMPath(ev.target, parent => parent.tagName == 'A' ? true : false);
+            if (ev.target.hasAttribute('navigate:view') || ev.target.tagName == "A") {
+                return ev.target;
+            }
+            else {
+                return AscendingDOMPath(ev.target, parent => parent.tagName == 'A' || parent.hasAttribute('navigate:view') ? true : false);
+            }
         }
         return undefined;
     }
     dispatchNavigate(ev) {
-        const routeName = this.currentRoute();
+        const routeName = this.currentRouteName();
         const parser = this.options.useHashtagParser ? 'hashtag' : 'directory';
         this.options.middlewares?.forEach(middleware => middleware({
             navigation: this,
             event: ev,
-            routeName: this.currentRoute(),
+            routeName: this.currentRouteName(),
             args: this.currentQuery() || undefined,
             parser: this.options.useHashtagParser ? 'hashtag' : 'directory',
         }));
@@ -1332,8 +1412,9 @@ export class AunNavigation {
         if (!route) {
             return this;
         }
-        const currentRoute = this.currentRoute();
+        const currentRoute = this.currentRouteName();
         const routeName = route;
+        __classPrivateFieldSet(this, _AunNavigation_oldRoute, routeName, "f");
         if (currentRoute != routeName) {
             if (this.options.useHashtagParser) {
                 location.hash = `${routeName}`;
@@ -1349,5 +1430,303 @@ export class AunNavigation {
         return this;
     }
 }
-export class AunViewSwitcher {
+_AunNavigation_oldRoute = new WeakMap();
+/**
+ * Transition des éléments
+ */
+export class AUNTransition {
+    // emitter: IEmitter<ITransitionEmitterScheme> = new AunEmitter();
+    constructor(props) {
+        _AUNTransition_props.set(this, {});
+        __classPrivateFieldSet(this, _AUNTransition_props, props, "f");
+    }
+    in(target, doneCallback) {
+        const animate = __classPrivateFieldGet(this, _AUNTransition_props, "f").whenEntry(target);
+        animate.emitter.listen('done', () => { doneCallback(this); });
+        return animate;
+    }
+    out(target, doneCallback) {
+        const animate = __classPrivateFieldGet(this, _AUNTransition_props, "f").whenExit(target);
+        animate.emitter.listen('done', () => { doneCallback(this); });
+        return animate;
+    }
 }
+_AUNTransition_props = new WeakMap();
+/**
+ * Transitions prédinies des éléments
+ */
+export class AUNTransitions {
+}
+AUNTransitions.fade = new AUNTransition({
+    whenEntry: (target) => AUNAnimate.trigger(target, ({ animate, target }) => {
+        animate.element({
+            target,
+            from: [0],
+            to: [100],
+            duration: 1000,
+            properties: ['opacity'],
+            patterns: [
+                (value) => `${value / 100}`,
+            ]
+        });
+        return animate;
+    }),
+    whenExit: (target) => AUNAnimate.trigger(target, ({ animate, target }) => {
+        animate.element({
+            target,
+            from: [100],
+            to: [0],
+            duration: 1000,
+            properties: ['opacity'],
+            patterns: [
+                (value) => `${value / 100}`,
+            ]
+        });
+        return animate;
+    }),
+});
+AUNTransitions.horizontalSlide = new AUNTransition({
+    whenEntry: (target) => AUNAnimate.trigger(target, ({ animate, target }) => {
+        animate.element({
+            target,
+            from: [100],
+            to: [0],
+            duration: 1000,
+            properties: ['transform'],
+            patterns: [
+                (value) => `translateX(-${value}%)`,
+            ]
+        });
+        return animate;
+    }),
+    whenExit: (target) => AUNAnimate.trigger(target, ({ animate, target }) => {
+        animate.element({
+            target,
+            from: [0],
+            to: [100],
+            duration: 1000,
+            properties: ['transform'],
+            patterns: [
+                (value) => `translateX(-${value}%)`,
+            ]
+        });
+        return animate;
+    }),
+});
+/**
+ * Animation des éléments
+ */
+export class AUNAnimate {
+    constructor(target, callback) {
+        _AUNAnimate_instances.add(this);
+        _AUNAnimate_target.set(this, void 0);
+        _AUNAnimate_callback.set(this, void 0);
+        this.options = {};
+        _AUNAnimate_originOptions.set(this, {});
+        this.interpolarities = [];
+        this.state = 0;
+        this.loopState = 0;
+        this.status = false;
+        this.emitter = new AunEmitter();
+        __classPrivateFieldSet(this, _AUNAnimate_target, target, "f");
+        __classPrivateFieldSet(this, _AUNAnimate_callback, callback, "f");
+    }
+    get defaultFrame() { return 60; }
+    clean() {
+        this.options = __classPrivateFieldGet(this, _AUNAnimate_originOptions, "f");
+        return this;
+    }
+    /**
+     * Anime un élément
+     */
+    element(options) {
+        const properties = options.properties || ['opacity'];
+        const originalTransition = options.target.instance.style.getPropertyValue('transition') || null;
+        const patterns = options.patterns || [(v) => `${v / 100}`];
+        options.target.instance.style.transition = `${properties.join(', ')} 100ms ease`;
+        this.create({
+            duration: options.duration || 500,
+            from: options.from || [0],
+            to: options.to || [100],
+            // start(){ },
+            hit: ({ interpolarity }) => {
+                // console.log('Animae element', interpolarity )
+                interpolarity.forEach((value, k) => {
+                    const property = (properties[k] || undefined);
+                    if (property) {
+                        const style = {};
+                        const pattern = patterns[k] || null;
+                        style[property] = pattern ? `${pattern(value)}` : `${value}`;
+                        options.target.style(style);
+                    }
+                });
+            },
+            done(engine) {
+                engine.clean();
+                if (originalTransition) {
+                    options.target.style({ transition: originalTransition });
+                }
+                else {
+                    requestAnimationFrame(() => options.target.removeStyle('transition'));
+                }
+            },
+        });
+        return this;
+    }
+    /**
+     * Remake the animation with new options
+     */
+    reset(options) {
+        this.options = Object.assign({}, this.options, options);
+        return this.restart();
+    }
+    create(options) {
+        this.options = options;
+        __classPrivateFieldSet(this, _AUNAnimate_originOptions, options, "f");
+        /**
+         * Initialize
+         */
+        const interpolarities = [];
+        const frame = this.options.duration / (this.options.frame || (this.defaultFrame || 60));
+        /**
+         * Prepares
+         */
+        this.options.from.map((v, k) => {
+            const delta = (Math.abs(this.options.to[k] - v) / frame);
+            const sens = this.options.to[k] > v;
+            let from = v;
+            let to = sens ? this.options.to[k] + delta : this.options.to[k] - delta;
+            interpolarities[k] = [];
+            if (sens) {
+                for (let x = from; x <= to; x += delta) {
+                    interpolarities[k][interpolarities[k].length] = x >= this.options.to[k] ? this.options.to[k] : x;
+                }
+            }
+            else {
+                for (let x = from; x >= to; x -= delta) {
+                    interpolarities[k][interpolarities[k].length] = (x <= this.options.to[k]) ? this.options.to[k] : x;
+                }
+            }
+        });
+        this.emitter.dispatch('ready', interpolarities);
+        /**
+         * Trigger Engine
+         */
+        this.status = true;
+        this.interpolarities = interpolarities;
+        if (typeof this.options.start == 'function') {
+            this.options.start(this);
+        }
+        this.emitter.dispatch('start', interpolarities[0]);
+        return this;
+    }
+    /**
+     * Stopper
+     */
+    stop() {
+        this.status = false;
+        // this.emitter.dispatch('stop', this)
+        return this;
+    }
+    /**
+     * Redemarrage de l'animation
+     */
+    restart() {
+        this.status = false;
+        this.state = 0;
+        this.loopState = 0;
+        return this.create(this.options);
+    }
+    /**
+     * Lecture de l'animation
+     */
+    play() {
+        if (this.status === false) {
+            return this;
+        }
+        const loop = this.options.loop === true ? true : this.options.loop;
+        const interpolarities = this.interpolarities;
+        if (!interpolarities.length) {
+            throw (`Sensen.Fx.Engine : No Interpolarity Data < ${JSON.stringify(interpolarities)} >`);
+        }
+        const limit = interpolarities[0].length - 1;
+        const couple = interpolarities.map(entry => entry[this.state]);
+        const percent = (this.state / limit) * 100;
+        if (this.state >= limit) {
+            if (typeof this.options.hit == 'function') {
+                this.options.hit({
+                    interpolarity: interpolarities.map(entry => entry[limit]),
+                    animate: this,
+                    percent
+                });
+            }
+            if (typeof this.options.done == 'function') {
+                this.options.done(this);
+            }
+            this.emitter.dispatch('done', interpolarities[interpolarities.length - 1]);
+            /**
+             * Loop
+             */
+            if (loop && (typeof loop == 'number' && loop <= this.loopState)) {
+                this.state = 0;
+                this.loopState++;
+                this.emitter.dispatch('loop', this);
+                globalThis.requestAnimationFrame(this.play.bind(this));
+            }
+        }
+        else {
+            this.state++;
+            if (typeof this.options.hit == 'function') {
+                this.options.hit({
+                    interpolarity: couple,
+                    animate: this,
+                    percent
+                });
+            }
+            this.emitter.dispatch('hit', {
+                interpolate: couple,
+                engine: this,
+                percent
+            });
+            globalThis.requestAnimationFrame(this.play.bind(this));
+        }
+        return this;
+    }
+    static trigger(target, callback) {
+        var _a;
+        return __classPrivateFieldGet((_a = (new this(target, callback))), _AUNAnimate_instances, "m", _AUNAnimate_initCallback).call(_a).play();
+    }
+}
+_AUNAnimate_target = new WeakMap(), _AUNAnimate_callback = new WeakMap(), _AUNAnimate_originOptions = new WeakMap(), _AUNAnimate_instances = new WeakSet(), _AUNAnimate_initCallback = function _AUNAnimate_initCallback() {
+    __classPrivateFieldGet(this, _AUNAnimate_callback, "f").call(this, {
+        animate: this,
+        target: __classPrivateFieldGet(this, _AUNAnimate_target, "f"),
+    });
+    return this;
+};
+/**
+ * Animations des éléments
+ */
+// export class AUNAnimates implements IAnimates{
+//   props : IAnimateProps;
+//   constructor( props : IAnimateProps ){
+//     this.props = props;
+//     console.log('Animate with', props )
+//   }
+//   start() : this {
+//     return this;
+//   }
+// }
+/**
+ * Système de changement de vue
+ */
+// export class AunViewSwitcher implements IViewSwitcher{
+//   props : IViewSwitcherProps = {} as IViewSwitcherProps;
+//   constructor( props : IViewSwitcherProps ){
+//     this.props = props;
+//   }
+//   make(){
+//     console.log('Make Switcher', this.props )
+//     return this;
+//   }
+// }

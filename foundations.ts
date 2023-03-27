@@ -44,6 +44,9 @@ import type {
   IStateManager, 
   IStateManagerEmitterScheme, 
   IStateRecords, 
+  IAnimate, 
+  IAnimateCallback, 
+  IAnimateTarget, 
   IView, 
   IViewOptions, 
   IWidget, 
@@ -54,7 +57,15 @@ import type {
   IWidgetTimerCallback, 
   IWProps, 
   IWTarget, 
-  IWTargetNode
+  IWTargetNode,
+  ITransition,
+  ITransitionProps,
+  IAnimateOptions,
+  IAnimateEmitterScheme,
+  IAnimateInterpolarities,
+  IAnimateElementOptions,
+  IAnimateElementProperties,
+  ITransitionDoneCallback
 } from "./types";
 
 import { MetricRandom } from "./metric";
@@ -67,6 +78,8 @@ import {
   UpdateObject,
   URLParamsObject
 } from "./utilities";
+
+
 
 /**
  * fe — Find Element
@@ -650,6 +663,37 @@ export class AunElement<E extends INode> implements IElement<E>{
     if( attributes ){
 
       Object.entries( AttributesObject<IAttributesMap>( attributes, ns, separator ) )
+      
+      .forEach( ({ 0: name, 1: attribute }) => {
+
+        this.instance.setAttribute( name, `${ attribute }` )
+        
+      } )
+      
+    }
+    
+    return this; 
+  
+  }
+
+  /**
+   * attribute
+   * @description Definit le/les attribut(s)
+   * @param attributes Attributs sous form d'object
+   * @param ns Nom de l'espace
+   * @param separator Séparateur de nom d'espace
+   */
+  attributeNS( 
+    
+    attributes ?: IAttributesMap | undefined, 
+    
+    ns?: string | undefined
+    
+  ) { 
+
+    if( attributes ){
+
+      Object.entries( AttributesObject<IAttributesMap>( attributes, ns, ':' ) )
       
       .forEach( ({ 0: name, 1: attribute }) => {
 
@@ -2050,6 +2094,9 @@ export class AunStackViews<Scheme> implements IStackViews<Scheme>{
 
   #views : IStackViewsList<Scheme> = {} as IStackViewsList<Scheme>;
 
+
+  oldComponent : IWidget<any, any> | undefined = undefined;
+
   /**
    * Options
    */
@@ -2075,13 +2122,15 @@ export class AunStackViews<Scheme> implements IStackViews<Scheme>{
 
     this.#views = views;
 
-    this.options = options || {} as IStackViewsOptions<Scheme>
+    this.options = options || {} as IStackViewsOptions<Scheme>;
 
     this.navigation.setOptions({
 
       middlewares: [
         
-        this.middleware.bind( this ),
+        this.#defaultMiddleware.bind( this ),
+
+        ...(this.options.middlewares || []),
       
       ],
 
@@ -2099,9 +2148,48 @@ export class AunStackViews<Scheme> implements IStackViews<Scheme>{
       
     })
     
+
+    this.#initializeCanvas();
+    
   }
 
-  middleware( { args, routeName } : INavigationMiddlewareProps<Scheme> ) : this {
+
+  #initializeCanvas(){
+
+    fe( this.options.canvas, canvas => {
+      
+      canvas.style.position = 'relative';
+
+    })
+    
+    return this;
+    
+  }
+  
+
+  middleware(callback: INavigationMiddlewareCallback<Scheme> ): this {
+
+    this.navigation.options.middlewares?.push( callback )
+
+    return this;
+    
+  }
+
+  currentView() : IStackViewsList<Scheme>[keyof Scheme] | undefined{
+    
+    return this.#views[ this.navigation.currentRouteName() ];
+    
+  }
+
+  oldView() : IStackViewsList<Scheme>[keyof Scheme] | undefined{
+
+    const name = this.navigation.oldRouteName();
+
+    return name ? this.#views[ name ] || undefined : undefined;
+    
+  }
+  
+  #defaultMiddleware( { args, routeName } : INavigationMiddlewareProps<Scheme> ) : this {
 
     const view : IStackViewsList<Scheme>[keyof Scheme] | undefined = this.#views[ routeName ] || undefined;
 
@@ -2109,13 +2197,83 @@ export class AunStackViews<Scheme> implements IStackViews<Scheme>{
 
       fe( this.options.canvas, canvas => {
 
-        canvas.innerText = ''
+        const component = view.componentConstructor(args);
 
-        const component = view.componentConstructor(args)
+        const transitionAvailable = view?.options.transitions && component.element.instance;
+
+        const oldView = this.oldView();
         
-        canvas.append( component.element.instance )
+        // const oldTransitionAvailable = oldView?.options.transitions && this.oldComponent?.element.instance;
 
-        console.log('Middleware called', routeName, component, canvas )
+
+        component.element.style({
+
+          position: 'absolute',
+          
+          top:'0',
+          
+          left:'0',
+
+          zIndex: '2'
+          
+        })
+
+
+        if( this.oldComponent ){
+
+          component.element.style({
+
+            position: 'absolute',
+            
+            top:'0',
+            
+            left:'0',
+
+            zIndex: '1'
+            
+          })
+          
+        }
+
+        // const route = this.currentView();
+
+        // console.log('Old routre', routeName, oldView )
+        
+        if( transitionAvailable ){
+
+          component.element.on('transitionend', () =>{
+
+            this.oldComponent?.element.remove()
+
+            this.oldComponent = component;
+            
+          })
+          
+          view.options.transitions?.entry.in( component.element, () => {} )
+
+          if( this.oldComponent ){
+
+            oldView?.options.transitions?.entry.out( this.oldComponent.element, () => {} );
+            
+          }
+          
+          canvas.append( component.element.instance )
+
+        }
+        
+
+        
+        if( !transitionAvailable ){
+
+          canvas.innerText = '';
+
+          canvas.append( component.element.instance )
+
+          this.oldComponent = component;
+
+        }
+
+        
         
       } )
 
@@ -2143,7 +2301,7 @@ export class AunStackViews<Scheme> implements IStackViews<Scheme>{
 
       this.navigation.navigate( 
         
-        this.navigation.currentRoute() || this.options.index,
+        this.navigation.currentRouteName() || this.options.index,
 
         this.navigation.currentQuery() || undefined,
 
@@ -2169,22 +2327,37 @@ export class AunNavigation<Scheme> implements INavigation<Scheme>{
 
   emitter: IEmitter<INavigationEmitterScheme<Scheme>> = new AunEmitter<INavigationEmitterScheme<Scheme>>()
   
+  #oldRoute : keyof Scheme | undefined;
   
   constructor(){
 
     this.options.middlewares = this.options.middlewares || [];
     
   }
-  
-  currentRoute() : keyof Scheme{
+
+  currentRouteName() : keyof Scheme{
 
     return (this.options.useHashtagParser ? location.hash : location.pathname).substring(1) as keyof Scheme
+
+  }
+
+  oldRouteName() : keyof Scheme | undefined {
+
+    return this.#oldRoute;
 
   }
 
   currentQuery<T>() : T | undefined{
 
     return URLParamsObject<T>( location.search );
+    
+  }
+
+  setOption(optionName: keyof INavigationOptions<Scheme>, value: (INavigationMiddlewareCallback<Scheme>[] & boolean) | undefined ): this {
+      
+    this.options[ optionName ] = value;
+    
+    return this;
     
   }
   
@@ -2223,11 +2396,11 @@ export class AunNavigation<Scheme> implements INavigation<Scheme>{
       document.body.addEventListener('click', (ev) => {
 
         const target = this.parseElementCaptured( ev )
-
         
+
         if( target && !target.hasAttribute('navigate:no-detection') ){
           
-          const url = target.getAttribute('href') || target.getAttribute('navigate:view');
+          const url = target.getAttribute('href') || target.getAttribute('navigate:view') || target.getAttribute('navigate-view');
           
           const blank = (target.getAttribute('target') || '').toLowerCase() == '_blank';
 
@@ -2273,11 +2446,21 @@ export class AunNavigation<Scheme> implements INavigation<Scheme>{
 
     if( ev.target instanceof HTMLElement ){
 
-      return AscendingDOMPath<HTMLElement>( ev.target as HTMLElement, parent => 
+      if( ev.target.hasAttribute('navigate:view') || ev.target.tagName == "A" ){
 
-        parent.tagName == 'A' ? true : false
+        return ev.target;
         
-      )
+      }
+
+      else{
+
+        return AscendingDOMPath<HTMLElement>( ev.target as HTMLElement, parent => 
+
+          parent.tagName == 'A' || parent.hasAttribute('navigate:view') ? true : false
+          
+        )
+
+      }
 
     }
 
@@ -2287,7 +2470,7 @@ export class AunNavigation<Scheme> implements INavigation<Scheme>{
   
   dispatchNavigate( ev ?: Event | undefined ) : this {
 
-    const routeName = this.currentRoute();
+    const routeName = this.currentRouteName();
 
     const parser = this.options.useHashtagParser ? 'hashtag' : 'directory';
 
@@ -2298,7 +2481,7 @@ export class AunNavigation<Scheme> implements INavigation<Scheme>{
 
       event: ev,
 
-      routeName: this.currentRoute(),
+      routeName: this.currentRouteName(),
 
       args: this.currentQuery() || undefined,
 
@@ -2323,11 +2506,13 @@ export class AunNavigation<Scheme> implements INavigation<Scheme>{
   navigate( route : keyof Scheme, props ?: (Scheme[ keyof Scheme ]), ev?: Event ): this {
 
     if( !route ){ return this; }
-
-    const currentRoute = this.currentRoute();
-
+    
+    const currentRoute = this.currentRouteName();
+    
     const routeName = route as string;
-
+    
+    this.#oldRoute = routeName as keyof Scheme;
+    
     if( currentRoute != routeName ){
 
       if( this.options.useHashtagParser ){
@@ -2354,4 +2539,551 @@ export class AunNavigation<Scheme> implements INavigation<Scheme>{
   
 }
 
-export class AunViewSwitcher{}
+
+
+
+/**
+ * Transition des éléments
+ */
+export class AUNTransition implements ITransition{
+
+  #props : ITransitionProps = {} as ITransitionProps;
+
+  // emitter: IEmitter<ITransitionEmitterScheme> = new AunEmitter();
+
+  constructor( props : ITransitionProps ){
+
+    this.#props = props;
+    
+  }
+  
+  in( target : IAnimateTarget, doneCallback : ITransitionDoneCallback ): IAnimate {
+
+    const animate =  this.#props.whenEntry( target );
+
+    animate.emitter.listen('done', () =>{ doneCallback( this ) })
+      
+    return animate;
+    
+  }
+
+  out( target : IAnimateTarget, doneCallback : ITransitionDoneCallback ): IAnimate {
+
+    const animate = this.#props.whenExit( target );
+      
+    animate.emitter.listen('done', () =>{ doneCallback( this ) })
+
+    return animate;
+    
+  }
+  
+}
+
+
+/**
+ * Transitions prédinies des éléments
+ */
+export class AUNTransitions{
+
+  static fade = new AUNTransition({
+
+    whenEntry: ( target ) => AUNAnimate.trigger( target, ({animate, target}) => {
+
+      animate.element({
+
+        target,
+        
+        from: [ 0 ],
+  
+        to: [ 100 ],
+
+        duration: 1000,
+
+        properties: ['opacity'],
+
+        patterns: [
+
+          (value) => `${ value / 100 }`,
+          
+        ]
+  
+      })
+
+      return animate;
+
+    }),
+
+    whenExit: ( target ) => AUNAnimate.trigger( target, ({animate, target}) => {
+
+      animate.element({
+
+        target,
+        
+        from: [ 100 ],
+  
+        to: [ 0 ],
+
+        duration: 1000,
+
+        properties: ['opacity'],
+
+        patterns: [
+
+          (value) => `${ value / 100 }`,
+          
+        ]
+  
+      })
+
+      return animate;
+
+    }),
+    
+  })
+  
+
+  static horizontalSlide = new AUNTransition({
+
+    whenEntry: ( target ) => AUNAnimate.trigger( target, ({animate, target}) => {
+
+      animate.element({
+
+        target,
+        
+        from: [ 100 ],
+  
+        to: [ 0 ],
+
+        duration: 1000,
+
+        properties: ['transform'],
+
+        patterns: [
+
+          (value) => `translateX(-${ value }%)`,
+          
+        ]
+  
+      })
+
+      return animate;
+
+    }),
+
+    whenExit: ( target ) => AUNAnimate.trigger( target, ({animate, target}) => {
+
+      animate.element({
+
+        target,
+        
+        from: [ 0 ],
+  
+        to: [ 100 ],
+
+        duration: 1000,
+
+        properties: ['transform'],
+
+        patterns: [
+
+          (value) => `translateX(-${ value }%)`,
+          
+        ]
+  
+      })
+
+      return animate;
+
+    }),
+    
+  })
+  
+}
+
+/**
+ * Animation des éléments
+ */
+export class AUNAnimate implements IAnimate{
+
+  #target: IAnimateTarget;
+
+  #callback : IAnimateCallback;
+
+
+
+  options: IAnimateOptions = {} as IAnimateOptions;
+
+  #originOptions: IAnimateOptions = {} as IAnimateOptions;
+
+  get defaultFrame() : number{ return 60 }
+
+  interpolarities : IAnimateInterpolarities = [];
+
+  state : number = 0;
+
+  loopState : number = 0;
+
+  status : boolean = false;
+
+  emitter : IEmitter<IAnimateEmitterScheme> = new AunEmitter()
+
+  
+  
+  constructor( target : IAnimateTarget, callback : IAnimateCallback ){
+
+    this.#target = target;
+
+    this.#callback = callback;
+    
+  }
+
+  clean(): this {
+
+    this.options = this.#originOptions;
+    
+    return this;
+
+  }
+
+
+  /**
+   * Anime un élément
+   */
+  element(options: IAnimateElementOptions): this {
+
+    const properties : IAnimateElementProperties = options.properties || ['opacity'];
+
+    const originalTransition = options.target.instance.style.getPropertyValue('transition') || null
+
+    const patterns = options.patterns || [ (v) => `${ v / 100 }` ]
+
+    options.target.instance.style.transition = `${ properties.join(', ') } 100ms ease`
+  
+
+    this.create({
+
+      duration : options.duration || 500,
+
+      from : options.from || [0],
+  
+      to : options.to || [100],
+
+      // start(){ },
+      
+      hit: ({ interpolarity }) => {
+
+        // console.log('Animae element', interpolarity )
+
+        interpolarity.forEach( (value, k) => {
+
+          const property = (properties[ k ] || undefined) as string | undefined;
+
+          if( property ){
+
+            const style : { [K:string] : string } = {};
+
+            const pattern = patterns[ k ] || null;
+
+            style[ property ] = pattern ? `${ pattern( value ) }` : `${ value }`
+
+            options.target.style( style );
+            
+          }
+          
+        })
+
+      },
+
+      done(engine) {
+          
+        engine.clean()
+
+        if( originalTransition ){ options.target.style({ transition: originalTransition }) }
+
+        else{ 
+
+          requestAnimationFrame(()=> options.target.removeStyle('transition') )
+          
+        }
+        
+      },
+      
+    })
+    
+
+    return this;
+    
+  }
+
+  
+
+  /**
+   * Remake the animation with new options
+   */
+  reset( options: IAnimateOptions ){
+
+    this.options = Object.assign({}, this.options, options);
+
+    return this.restart();
+    
+  }
+
+
+  create( options : IAnimateOptions ){
+
+    this.options = options;
+
+    this.#originOptions = options;
+
+    /**
+     * Initialize
+     */
+    const interpolarities: IAnimateInterpolarities = []
+
+    const frame = this.options.duration / (this.options.frame || (this.defaultFrame || 60))
+
+    /**
+     * Prepares
+     */
+    this.options.from.map((v,k)=>{
+
+        const delta = (Math.abs( this.options.to[k] - v ) / frame);
+
+        const sens = this.options.to[k] > v;
+
+        let from = v;
+
+        let to = sens ? this.options.to[k] + delta : this.options.to[k] - delta;
+        
+
+        interpolarities[k] = []
+
+        if(sens){
+
+            for (let x = from; x <= to; x+=delta) { interpolarities[k][interpolarities[k].length] = x >= this.options.to[k] ? this.options.to[k] : x; }
+
+        }
+
+        else{
+
+            for (let x = from; x >= to; x-=delta) { interpolarities[k][interpolarities[k].length] = (x <= this.options.to[k]) ? this.options.to[k] : x; }
+            
+        }
+        
+    })
+    
+    this.emitter.dispatch('ready', interpolarities)
+
+    /**
+     * Trigger Engine
+     */
+
+    this.status = true;
+
+    this.interpolarities = interpolarities;
+
+    if(typeof this.options.start == 'function'){ this.options.start(this); }
+
+    this.emitter.dispatch('start', interpolarities[0])
+
+
+    return this;
+    
+  }
+
+
+  /**
+   * Stopper 
+   */
+  stop(){
+
+    this.status = false;
+
+    // this.emitter.dispatch('stop', this)
+
+    return this;
+
+  }
+
+
+  /**
+   * Redemarrage de l'animation
+   */
+  restart(){
+
+    this.status = false;
+
+    this.state = 0;
+
+    this.loopState = 0;
+    
+    return this.create( this.options );
+    
+  }
+
+
+  /**
+   * Lecture de l'animation
+   */
+  play(){
+
+      if(this.status === false){ return this; }
+
+      const loop = this.options.loop === true ? true : this.options.loop;
+
+      const interpolarities = this.interpolarities;
+
+
+      if(!interpolarities.length){ throw (`Sensen.Fx.Engine : No Interpolarity Data < ${ JSON.stringify(interpolarities) } >`); }
+
+      const limit = interpolarities[0].length - 1;
+
+      const couple : number[] = interpolarities.map(entry=> entry[ this.state ] )
+
+      const percent = (this.state / limit) * 100;
+
+      if(this.state >= limit){
+
+          if(typeof this.options.hit == 'function'){
+
+              this.options.hit({
+
+                interpolarity : interpolarities.map(entry=> entry[limit]), 
+                
+                animate: this, 
+                
+                percent
+                
+              });
+
+          }
+
+          if(typeof this.options.done == 'function'){ this.options.done(this); }
+          
+          this.emitter.dispatch('done', interpolarities[ interpolarities.length - 1 ])
+
+
+          /**
+           * Loop
+           */
+          if(loop && (typeof loop == 'number' && loop <= this.loopState) ){
+  
+              this.state = 0;
+              
+              this.loopState++;
+              
+              this.emitter.dispatch('loop', this)
+
+              globalThis.requestAnimationFrame(this.play.bind(this));
+
+          }
+          
+      }
+
+      else{
+
+          this.state++;
+
+          if(typeof this.options.hit == 'function'){
+
+              this.options.hit({
+                
+                interpolarity : couple, 
+                
+                animate : this, 
+                
+                percent
+              
+              });
+
+          }
+          
+          this.emitter.dispatch('hit', {
+              
+              interpolate : couple,
+              
+              engine : this,
+              
+              percent
+
+          })
+
+          globalThis.requestAnimationFrame(this.play.bind(this))
+
+      }
+
+      return this;
+      
+  }
+  
+  
+
+  #initCallback(){
+
+    this.#callback({
+
+      animate: this,
+      
+      target: this.#target,
+      
+    })
+
+    return this;
+    
+  }
+  
+  static trigger( target : IAnimateTarget, callback : IAnimateCallback ){
+
+    return (new this( target, callback )).#initCallback().play()
+
+  }
+  
+}
+
+/**
+ * Animations des éléments
+ */
+// export class AUNAnimates implements IAnimates{
+
+//   props : IAnimateProps;
+
+//   constructor( props : IAnimateProps ){
+
+//     this.props = props;
+
+//     console.log('Animate with', props )
+    
+//   }
+
+//   start() : this {
+
+//     return this;
+    
+//   }
+
+// }
+
+
+
+/**
+ * Système de changement de vue
+ */
+// export class AunViewSwitcher implements IViewSwitcher{
+
+//   props : IViewSwitcherProps = {} as IViewSwitcherProps;
+
+//   constructor( props : IViewSwitcherProps ){
+
+//     this.props = props;
+
+//   }
+
+//   make(){
+
+//     console.log('Make Switcher', this.props )
+
+//     return this;
+    
+//   }
+  
+// }

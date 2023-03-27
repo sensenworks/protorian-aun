@@ -1,3 +1,4 @@
+import { AUNTransitions } from "./foundations";
 import { ActiveAutoHydrateComponents, AsyncComponent, CreateComponent, CreateState, HydrateComponentQueue, aune, TextWidget, UseComponent, CreateKit, Widget, View, CreateStackViews, } from "./index";
 ActiveAutoHydrateComponents();
 /**
@@ -119,28 +120,31 @@ const HomeFrameComponent = () => Widget({
             children: 'Home Frame'
         }).layer(element => element.style({
             fontSize: '3vmin'
-        })),
+        }).attributeNS({ navigate: { view: 'about' } }, undefined)),
         TextWidget({
             children: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sed ipsum explicabo modi, voluptates possimus ducimus excepturi optio consequuntur reiciendis quod quisquam ex, error autem suscipit, enim nisi aliquid sunt impedit?'
         }),
     ]
-});
+}).layer(e => e.style({ backgroundColor: 'white' }));
 const AboutFrameComponent = () => Widget({
     children: [
         TextWidget({
             children: 'About Frame'
         }).layer(element => element.style({
-            fontSize: '3vmin'
+            fontSize: '5vmin'
         })),
-        TextWidget({
-            children: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sed ipsum explicabo modi, voluptates possimus ducimus excepturi optio consequuntur reiciendis quod quisquam ex, error autem suscipit, enim nisi aliquid sunt impedit?'
-        }),
+        // TextWidget({
+        //   children: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sed ipsum explicabo modi, voluptates possimus ducimus excepturi optio consequuntur reiciendis quod quisquam ex, error autem suscipit, enim nisi aliquid sunt impedit?'
+        // }),
     ]
-});
+}).layer(e => e.style({ backgroundColor: 'white' }));
 const HomeFrame = View(HomeFrameComponent, {
     title: 'Home Frame',
     name: 'home',
-    presenter: 'modal',
+    transitions: {
+        entry: AUNTransitions.horizontalSlide,
+        exit: AUNTransitions.fade,
+    },
     emitters: {
     // shown: ( {component, route } ) => console.log(route.name, 'is open') 
     }
@@ -149,6 +153,10 @@ const AboutFrame = View(AboutFrameComponent, {
     title: 'About Frame',
     name: 'about',
     presenter: 'modal',
+    transitions: {
+        entry: AUNTransitions.horizontalSlide,
+        exit: AUNTransitions.fade,
+    },
     emitters: {
     // shown: ( {component, route } ) => console.log(route.name, 'is open') 
     }
@@ -159,7 +167,13 @@ const AppStackView = CreateStackViews({
 }, {
     index: 'home',
     canvas: '#stackframes',
-    useHashtagParser: false
+    useHashtagParser: false,
+    middlewares: [
+    // ( payload ) => {
+    //   // console.log('My Middleware from option', payload )
+    // }
+    ]
 });
+// AppStackView.middleware( payload => console.log('Middle from middleware\'s method', payload ) )
 AppStackView.run();
 // AppStackView.navigation.navigate('home')

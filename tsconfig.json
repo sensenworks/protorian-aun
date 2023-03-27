@@ -22,6 +22,8 @@
         "noImplicitReturns": true,
         "noEmit": false,
 
+        "types": ["node"],
+
         "outDir": "."
 
     },
